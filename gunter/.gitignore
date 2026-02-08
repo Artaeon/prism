@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Data files (too large for git)
+*.pkl
+*.npz
+data/cache/
+data/trained_memory.*
+data/knowledge_base.json.gz
+
+# Environment
+.env
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
