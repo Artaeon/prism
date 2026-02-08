@@ -68,6 +68,8 @@ class KnowledgeIntegrator:
         sources: list[str] | None = None,
         max_facts_per_source: int | None = None,
         use_cache: bool = True,
+        wordnet_max_synsets: int = 10_000,
+        conceptnet_min_confidence: float = 1.0,
     ) -> None:
         """Load and merge facts from all specified sources.
         
@@ -76,6 +78,8 @@ class KnowledgeIntegrator:
                      None = all sources
             max_facts_per_source: Limit per source (for testing)
             use_cache: Use cached data from individual loaders
+            wordnet_max_synsets: Max WordNet synsets to process (default 10000)
+            conceptnet_min_confidence: Min confidence for ConceptNet facts (default 1.0)
         """
         if sources is None:
             sources = ['conceptnet', 'wordnet', 'simplewiki']
@@ -86,7 +90,11 @@ class KnowledgeIntegrator:
         
         for source in sources:
             st = time.time()
-            loader_facts = self._load_source(source, max_facts_per_source, use_cache)
+            loader_facts = self._load_source(
+                source, max_facts_per_source, use_cache,
+                wordnet_max_synsets=wordnet_max_synsets,
+                conceptnet_min_confidence=conceptnet_min_confidence,
+            )
             elapsed = time.time() - st
             
             self._source_counts[source] = len(loader_facts)
@@ -139,17 +147,26 @@ class KnowledgeIntegrator:
         source: str,
         max_facts: int | None,
         use_cache: bool,
+        wordnet_max_synsets: int = 10_000,
+        conceptnet_min_confidence: float = 1.0,
     ) -> list[Fact]:
         """Load facts from a single source."""
         if source == 'conceptnet':
             from prism.data.loaders.conceptnet_loader import ConceptNetLoader
             loader = ConceptNetLoader(cache_dir=str(self.cache_dir))
-            return loader.load(max_facts=max_facts, use_cache=use_cache)
+            return loader.load(
+                min_confidence=conceptnet_min_confidence,
+                max_facts=max_facts,
+                use_cache=use_cache,
+            )
         
         elif source == 'wordnet':
             from prism.data.loaders.wordnet_loader import WordNetLoader
             loader = WordNetLoader()
-            return loader.load(max_facts=max_facts)
+            return loader.load(
+                max_facts=max_facts,
+                max_synsets=wordnet_max_synsets,
+            )
         
         elif source == 'simplewiki':
             from prism.data.loaders.simplewiki_loader import SimpleWikiLoader

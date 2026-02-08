@@ -10,12 +10,12 @@ import sys, os, time
 # Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from gunter.main import Gunter
+from prism.main import PRISM
 
 
-def make_gunter():
-    """Create a Gunter instance with rich facts for advanced reasoning."""
-    g = Gunter()
+def make_prism():
+    """Create a PRISM instance with rich facts for advanced reasoning."""
+    g = PRISM()
     
     # Taxonomy & properties (via natural language parser)
     nl_facts = [
@@ -76,9 +76,9 @@ def test_multihop():
     """Test MultiHopReasoner."""
     print("\n=== Multi-Hop Reasoning ===\n")
     
-    g = make_gunter()
+    g = make_prism()
     
-    from gunter.reasoning.multihop import MultiHopReasoner
+    from prism.reasoning.multihop import MultiHopReasoner
     mh = MultiHopReasoner(g.memory, g.lexicon)
     
     passed = 0
@@ -144,9 +144,9 @@ def test_analogy():
     """Test AdvancedAnalogyReasoner."""
     print("\n=== Analogy Reasoning ===\n")
     
-    g = make_gunter()
+    g = make_prism()
     
-    from gunter.reasoning.analogy_engine import AdvancedAnalogyReasoner
+    from prism.reasoning.analogy_engine import AdvancedAnalogyReasoner
     ar = AdvancedAnalogyReasoner(g.lexicon, g.memory)
     
     passed = 0
@@ -190,7 +190,7 @@ def test_analogy():
     else:
         print(f"  ✗ pattern completion: no answer")
     
-    # Test 5: Complete via Gunter (end-to-end analogy detection)
+    # Test 5: Complete via PRISM (end-to-end analogy detection)
     total += 1
     response = g.process_input("lions are to savanna as polar bears are to ?")
     if response and "?" not in response and len(response) > 5:
@@ -207,9 +207,9 @@ def test_causality():
     """Test CausalReasoner."""
     print("\n=== Causal Reasoning ===\n")
     
-    g = make_gunter()
+    g = make_prism()
     
-    from gunter.reasoning.causality import CausalReasoner
+    from prism.reasoning.causality import CausalReasoner
     cr = CausalReasoner(g.memory, g.lexicon)
     
     passed = 0
@@ -281,7 +281,7 @@ def test_temporal():
     """Test enhanced TemporalReasoner."""
     print("\n=== Temporal Reasoning ===\n")
     
-    g = make_gunter()
+    g = make_prism()
     
     passed = 0
     total = 0
@@ -314,7 +314,7 @@ def test_temporal():
     else:
         print(f"  ✗ sunrise vs sunset: unexpected {order}")
     
-    # Test 4: E2E temporal question via Gunter
+    # Test 4: E2E temporal question via PRISM
     total += 1
     response = g.process_input("When do cats hunt?")
     if response and len(response) > 5:
@@ -331,7 +331,7 @@ def test_combined():
     """Test combined reasoning (multiple reasoners)."""
     print("\n=== Combined Reasoning ===\n")
     
-    g = make_gunter()
+    g = make_prism()
     
     passed = 0
     total = 0
@@ -371,11 +371,11 @@ def test_performance():
     """Performance benchmarks."""
     print("\n=== Performance ===\n")
     
-    g = make_gunter()
+    g = make_prism()
     
-    from gunter.reasoning.multihop import MultiHopReasoner
-    from gunter.reasoning.analogy_engine import AdvancedAnalogyReasoner
-    from gunter.reasoning.causality import CausalReasoner
+    from prism.reasoning.multihop import MultiHopReasoner
+    from prism.reasoning.analogy_engine import AdvancedAnalogyReasoner
+    from prism.reasoning.causality import CausalReasoner
     
     mh = MultiHopReasoner(g.memory, g.lexicon)
     ar = AdvancedAnalogyReasoner(g.lexicon, g.memory)
@@ -440,7 +440,7 @@ def test_regression():
     """Ensure existing Phase 15 tests still pass."""
     print("\n=== Regression ===\n")
     
-    g = make_gunter()
+    g = make_prism()
     
     passed = 0
     total = 0

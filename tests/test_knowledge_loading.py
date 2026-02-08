@@ -5,7 +5,7 @@ Tests all data loaders, memory extensions, integration, and end-to-end
 knowledge-based question answering.
 
 Usage:
-    cd gunter && python tests/test_knowledge_loading.py
+    cd prism && python tests/test_knowledge_loading.py
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ def test_conceptnet_loader():
     print("=== ConceptNet Loader ===\n")
     passed, total = 0, 0
     
-    from gunter.data.loaders.conceptnet_loader import (
+    from prism.data.loaders.conceptnet_loader import (
         ConceptNetLoader, _clean_entity, _is_english, RELATION_MAP,
         _has_digits, _has_taxonomy_marker, _lemmatize_simple,
     )
@@ -52,7 +52,7 @@ def test_conceptnet_loader():
                      'CAUSES', 'HAS-PROPERTY', 'MADE-OF', 'RELATED-TO'}
     actual_rels = set(RELATION_MAP.values())
     if expected_rels.issubset(actual_rels):
-        print(f"  ✓ Relation mapping: {len(RELATION_MAP)} ConceptNet → {len(actual_rels)} Gunter")
+        print(f"  ✓ Relation mapping: {len(RELATION_MAP)} ConceptNet → {len(actual_rels)} PRISM")
         passed += 1
     else:
         missing = expected_rels - actual_rels
@@ -140,7 +140,7 @@ def test_wordnet_loader():
     passed, total = 0, 0
     
     try:
-        from gunter.data.loaders.wordnet_loader import WordNetLoader
+        from prism.data.loaders.wordnet_loader import WordNetLoader
     except ImportError as e:
         print(f"  ✗ Import error: {e}")
         return 0, 1
@@ -221,7 +221,7 @@ def test_simplewiki_loader():
     print("=== SimpleWiki Loader ===\n")
     passed, total = 0, 0
     
-    from gunter.data.loaders.simplewiki_loader import (
+    from prism.data.loaders.simplewiki_loader import (
         SimpleWikiLoader, _strip_wiki_markup, _is_disambiguation,
         _is_redirect, _is_list,
     )
@@ -292,7 +292,7 @@ def test_knowledge_integrator():
     print("=== Knowledge Integrator ===\n")
     passed, total = 0, 0
     
-    from gunter.data.loaders.knowledge_integrator import KnowledgeIntegrator
+    from prism.data.loaders.knowledge_integrator import KnowledgeIntegrator
     
     # Test 1: Integrate sample data
     total += 1
@@ -363,9 +363,9 @@ def test_memory_extensions():
     print("=== Memory Extensions ===\n")
     passed, total = 0, 0
     
-    from gunter.main import Gunter
+    from prism.main import PRISM
     
-    g = Gunter()
+    g = PRISM()
     
     # Test 1: batch_store
     total += 1
@@ -437,7 +437,7 @@ def test_memory_extensions():
         save_path = os.path.join(tmpdir, 'test_memory')
         
         # Store specific facts
-        g2 = Gunter()
+        g2 = PRISM()
         g2.memory.batch_store([
             ('cat', 'IS-A', 'animal', 1.0),
             ('dog', 'IS-A', 'animal', 1.0),
@@ -445,7 +445,7 @@ def test_memory_extensions():
         g2.memory.save_to_disk(save_path)
         
         # Load into new memory
-        from gunter.memory import VectorMemory
+        from prism.memory import VectorMemory
         loaded = VectorMemory.load_from_disk(save_path)
         
         if len(loaded) == 2:
@@ -476,11 +476,11 @@ def test_end_to_end():
     print("=== End-to-End ===\n")
     passed, total = 0, 0
     
-    from gunter.main import Gunter
-    from gunter.data.loaders.knowledge_integrator import KnowledgeIntegrator
+    from prism.main import PRISM
+    from prism.data.loaders.knowledge_integrator import KnowledgeIntegrator
     
-    # Build a gunter with sample knowledge
-    g = Gunter()
+    # Build a prism with sample knowledge
+    g = PRISM()
     
     integrator = KnowledgeIntegrator()
     integrator.integrate_sample()
@@ -532,8 +532,8 @@ def test_end_to_end():
         path = os.path.join(tmpdir, 'test_trained')
         g.memory.save_to_disk(path)
         
-        g2 = Gunter()
-        from gunter.memory import VectorMemory
+        g2 = PRISM()
+        from prism.memory import VectorMemory
         loaded = VectorMemory.load_from_disk(path)
         g2.memory._semantic = loaded._semantic
         g2.memory._episodes = loaded._episodes
@@ -569,7 +569,7 @@ def test_training_script_integration():
     
     # Test 1: KnowledgeIntegrator with single source
     total += 1
-    from gunter.data.loaders.knowledge_integrator import KnowledgeIntegrator
+    from prism.data.loaders.knowledge_integrator import KnowledgeIntegrator
     
     integrator = KnowledgeIntegrator()
     try:
@@ -585,10 +585,10 @@ def test_training_script_integration():
     except Exception as e:
         print(f"  ✗ WordNet integration failed: {e}")
     
-    # Test 2: Load into Gunter memory
+    # Test 2: Load into PRISM memory
     total += 1
-    from gunter.main import Gunter
-    g = Gunter()
+    from prism.main import PRISM
+    g = PRISM()
     loaded = integrator.load_into_memory(g.memory, batch_size=100, max_facts=100)
     if loaded == 100:
         print(f"  ✓ Loaded {loaded} facts into memory")
@@ -618,8 +618,8 @@ def test_regression():
     print("=== Regression ===\n")
     passed, total = 0, 0
     
-    from gunter.main import Gunter
-    g = Gunter()
+    from prism.main import PRISM
+    g = PRISM()
     
     # Test 1: Name learning
     total += 1

@@ -1,9 +1,9 @@
 """Tests for Phase 15-LITE: VSA Pattern-Based Question Understanding."""
 
 import time
-from gunter.core import VSAConfig
-from gunter.main import Gunter
-from gunter.reasoning.pattern_library import PatternLibrary, PatternType
+from prism.core import VSAConfig
+from prism.main import PRISM
+from prism.reasoning.pattern_library import PatternLibrary, PatternType
 
 
 def test_pattern_matching():
@@ -11,8 +11,8 @@ def test_pattern_matching():
     print("=== Pattern Matching ===\n")
     
     config = VSAConfig(dimension=10_000)
-    gunter = Gunter(config)
-    lib = PatternLibrary(gunter.lexicon)
+    prism = PRISM(config)
+    lib = PatternLibrary(prism.lexicon)
     
     test_cases = [
         ("Are cats the same as dogs?", PatternType.SAMENESS),
@@ -53,8 +53,8 @@ def test_entity_extraction():
     print("=== Entity Extraction ===\n")
     
     config = VSAConfig(dimension=10_000)
-    gunter = Gunter(config)
-    lib = PatternLibrary(gunter.lexicon)
+    prism = PRISM(config)
+    lib = PatternLibrary(prism.lexicon)
     
     tests = [
         ("Are cats the same as dogs?", ["cats", "dogs"]),
@@ -78,7 +78,7 @@ def test_full_reasoning_pipeline():
     print("=== Full Reasoning Pipeline ===\n")
     
     config = VSAConfig(dimension=10_000)
-    gunter = Gunter(config)
+    prism = PRISM(config)
     
     # Teach facts
     facts = [
@@ -97,7 +97,7 @@ def test_full_reasoning_pipeline():
         "learn dogs have tails",
     ]
     for f in facts:
-        gunter.process_input(f)
+        prism.process_input(f)
     print(f"  Taught {len(facts)} facts\n")
     
     # Test questions
@@ -114,7 +114,7 @@ def test_full_reasoning_pipeline():
     passed = 0
     for question, expected in tests:
         start = time.time()
-        response = gunter.process_input(question)
+        response = prism.process_input(question)
         elapsed = (time.time() - start) * 1000
         first_line = response.split("\n")[0][:80]
         
@@ -137,11 +137,11 @@ def test_response_time():
     print("=== Response Time ===\n")
     
     config = VSAConfig(dimension=10_000)
-    gunter = Gunter(config)
+    prism = PRISM(config)
     
     # Warm up
-    gunter.process_input("learn cats are animals")
-    gunter.process_input("What is a cat?")
+    prism.process_input("learn cats are animals")
+    prism.process_input("What is a cat?")
     
     questions = [
         "Are cats the same as dogs?",
@@ -154,7 +154,7 @@ def test_response_time():
     times = []
     for q in questions:
         start = time.time()
-        gunter.process_input(q)
+        prism.process_input(q)
         elapsed = (time.time() - start) * 1000
         times.append(elapsed)
         print(f"  {q}: {elapsed:.0f}ms")
@@ -170,7 +170,7 @@ def test_regression():
     print("=== Regression ===\n")
     
     config = VSAConfig(dimension=10_000)
-    gunter = Gunter(config)
+    prism = PRISM(config)
     
     tests = [
         ("My name is Raphael", "raphael"),
@@ -186,7 +186,7 @@ def test_regression():
     
     passed = 0
     for text, expected in tests:
-        r = gunter.process_input(text)
+        r = prism.process_input(text)
         ok = expected.lower() in r.lower()
         passed += ok
         status = "✓" if ok else "✗"

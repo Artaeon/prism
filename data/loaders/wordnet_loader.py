@@ -1,7 +1,7 @@
 """WordNet Loader — Extract relations from NLTK WordNet.
 
 Extracts hypernym/hyponym/meronym/holonym/synonym relations from
-all WordNet synsets and maps them to Gunter relation types.
+all WordNet synsets and maps them to PRISM relation types.
 
 Example:
     >>> loader = WordNetLoader()

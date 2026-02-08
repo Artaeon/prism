@@ -1,6 +1,6 @@
 # Data Sources
 
-Gunter's large-scale knowledge integration uses three external data sources.
+PRISM's large-scale knowledge integration uses three external data sources.
 
 ## Sources
 
@@ -60,6 +60,6 @@ python scripts/train_knowledge.py --sources conceptnet,wordnet,simplewiki
 ## Using Trained Memory
 
 ```bash
-# Start Gunter with pre-trained knowledge
-python -m gunter --load-knowledge data/trained_memory
+# Start PRISM with pre-trained knowledge
+python -m prism --load-knowledge data/trained_memory
 ```

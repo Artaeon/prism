@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Train Gunter on large-scale knowledge sources.
+"""Train PRISM on large-scale knowledge sources.
 
 Usage:
     python scripts/train_knowledge.py --sources conceptnet,wordnet
@@ -21,7 +21,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Train Gunter on large-scale knowledge sources",
+        description="Train PRISM on large-scale knowledge sources",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -112,7 +112,7 @@ Examples:
             sys.exit(1)
     
     print("=" * 60)
-    print("Gunter Knowledge Training")
+    print("PRISM Knowledge Training")
     print("=" * 60)
     print(f"Sources: {', '.join(sources)}")
     print(f"Max facts: {args.max_facts or 'unlimited'}")
@@ -131,7 +131,7 @@ Examples:
     print("\n[1/3] Loading knowledge sources...")
     print("-" * 40)
     
-    from gunter.data.loaders.knowledge_integrator import KnowledgeIntegrator
+    from prism.data.loaders.knowledge_integrator import KnowledgeIntegrator
     
     integrator = KnowledgeIntegrator()
     
@@ -151,9 +151,9 @@ Examples:
     print("\n[2/3] Loading into VSA memory...")
     print("-" * 40)
     
-    from gunter.main import Gunter
+    from prism.main import PRISM
     
-    g = Gunter()
+    g = PRISM()
     
     loaded = integrator.load_into_memory(
         g.memory,
@@ -193,7 +193,7 @@ Examples:
 
 def _show_stats(filepath: str):
     """Show statistics of an existing trained memory."""
-    from gunter.memory import VectorMemory
+    from prism.memory import VectorMemory
     
     path = str(Path(PROJECT_ROOT / filepath))
     

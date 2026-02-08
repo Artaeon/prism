@@ -203,7 +203,7 @@ python scripts/train_knowledge.py --output data/knowledge.json.gz
 python scripts/train_knowledge.py --max-synsets 5000 --skip-wiki
 
 # Load into memory
-python -m gunter --load-knowledge data/knowledge.json.gz
+python -m prism --load-knowledge data/knowledge.json.gz
 ```
 
 ---
@@ -212,7 +212,7 @@ python -m gunter --load-knowledge data/knowledge.json.gz
 
 ```bash
 # Clone
-git clone https://github.com/your-username/prism.git
+git clone https://github.com/Artaeon/prism.git
 cd prism
 
 # Install
@@ -237,7 +237,7 @@ python -m spacy download en_core_web_md
 ### Interactive Mode
 
 ```bash
-python -m gunter
+python -m prism
 ```
 
 ```
@@ -260,9 +260,9 @@ PRISM: ✅ Yes — [multi-hop: photons IS-A quantum particles, quantum particles
 ### Programmatic API
 
 ```python
-from gunter.main import Gunter
+from prism.main import PRISM
 
-prism = Gunter()
+prism = PRISM()
 
 # Interactive reasoning
 response = prism.process_input("What do cats and dogs have in common?")
@@ -373,7 +373,7 @@ PRISM:  Input → Parse → Retrieve → Reason → Express (transparent at ever
 
 ```
 prism/
-├── src/gunter/
+├── src/prism/
 │   ├── core/             # VSA primitives: binding, bundling, similarity
 │   │   ├── lexicon.py        # Word → vector mapping with role vectors
 │   │   └── vector_ops.py     # Circular convolution, correlation, cosine
@@ -433,9 +433,9 @@ If you use PRISM in your research, please cite:
 ```bibtex
 @software{prism2026,
   title={PRISM: Pattern Reasoning via Interpretable Symbolic Memory},
-  author={[Your Name]},
+  author={Raphael Artaeon},
   year={2026},
-  url={https://github.com/your-username/prism},
+  url={https://github.com/Artaeon/prism},
   note={A neural-free cognitive architecture for knowledge reasoning
         using Vector Symbolic Architectures}
 }
