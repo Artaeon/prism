@@ -59,7 +59,7 @@ class TrainingStats:
         return "\n".join(lines)
 
 
-class PrismTrainer:
+class PRISMTrainer:
     """Full training pipeline for PRISM.
     
     Orchestrates:
@@ -69,7 +69,7 @@ class PrismTrainer:
     4. Storage (store in PRISM's memory with auto-save)
     
     Example:
-        >>> trainer = PrismTrainer(prism)
+        >>> trainer = PRISMTrainer(prism)
         >>> stats = trainer.train_from_file("knowledge.txt")
         >>> print(stats.summary())
     """
