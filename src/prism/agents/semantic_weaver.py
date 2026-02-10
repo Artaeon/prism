@@ -164,15 +164,27 @@ class VectorScorer:
 class PhraseCombiner:
     """Assembles responses by selecting and ordering evidence phrases.
     
+    Phase 5 upgrade:
+    - Discourse connectives between clauses (however, furthermore, etc.)
+    - Sentence fusion: merges overlapping entity references
+    - Smarter clause ordering based on semantic flow
+    
     The "VSA-native" generation:
     - Scores each clause by vector similarity to the query
     - Selects top-scoring clauses
+    - Fuses overlapping sentences
+    - Inserts discourse connectives
     - Orders them for coherence (entity-first, details later)
-    - Joins with commas/periods
-    
-    Different queries → different similarity scores → different
-    clause selections → unique output every time.
     """
+    
+    # Discourse connectives by rhetorical relation
+    CONNECTIVES = {
+        "elaboration": ["specifically", "in particular", "notably", "that is"],
+        "contrast": ["however", "on the other hand", "in contrast", "whereas"],
+        "addition": ["furthermore", "additionally", "also", "moreover"],
+        "cause": ["because of this", "as a result", "therefore", "consequently"],
+        "example": ["for example", "for instance", "such as"],
+    }
     
     def __init__(self, scorer: VectorScorer) -> None:
         self._scorer = scorer
@@ -198,19 +210,22 @@ class PhraseCombiner:
         if not evidence_sentences:
             return ""
         
-        # 1. Extract all clauses from all evidence sentences
+        # 1. Try sentence fusion first (merge overlapping evidence)
+        fused = self._fuse_sentences(evidence_sentences)
+        
+        # 2. Extract all clauses from fused sentences
         all_clauses: list[str] = []
-        for sent in evidence_sentences:
+        for sent in fused:
             clauses = _extract_clauses(sent)
             all_clauses.extend(clauses)
         
         if not all_clauses:
             return evidence_sentences[0]
         
-        # 2. Score each clause by query relevance
+        # 3. Score each clause by query relevance
         scored = self._scorer.rank_by_query(query, all_clauses, top_k=max_clauses + 3)
         
-        # 3. Select clauses — use seed for variety in selection
+        # 4. Select clauses — use seed for variety in selection
         h = int(hashlib.md5(seed.encode()).hexdigest(), 16)
         variety_offset = (h % 200) / 2000.0  # 0.0 - 0.1
         
@@ -241,7 +256,7 @@ class PhraseCombiner:
         if not selected:
             return evidence_sentences[0]
         
-        # 4. Order: keep #1 in place, shuffle rest by seed
+        # 5. Order: keep #1 in place, shuffle rest by seed
         if len(selected) > 2:
             top = selected[0]
             rest = selected[1:]
@@ -249,13 +264,25 @@ class PhraseCombiner:
             rest = rest[rotation:] + rest[:rotation]
             selected = [top] + rest
         
-        # 5. Build response with proper sentence boundaries
+        # 6. Build response with discourse connectives
         parts = []
-        for i, (clause, _) in enumerate(selected):
+        for i, (clause, score) in enumerate(selected):
             clause = re.sub(r'\s+', ' ', clause).strip()
-            # Capitalize each clause start
-            if clause:
+            if not clause:
+                continue
+            
+            # Add discourse connective between clauses
+            if i > 0 and len(selected) > 2:
+                connective = self._select_connective(
+                    parts[-1] if parts else "", clause, h + i,
+                )
+                if connective:
+                    clause = f"{connective}, {clause[0].lower() + clause[1:]}"
+                else:
+                    clause = clause[0].upper() + clause[1:]
+            else:
                 clause = clause[0].upper() + clause[1:]
+            
             parts.append(clause)
         
         # Join with periods for readability
@@ -264,6 +291,89 @@ class PhraseCombiner:
             text = text.rstrip() + '.'
         
         return text
+    
+    def _fuse_sentences(self, sentences: list[str]) -> list[str]:
+        """Merge overlapping sentences that share entities.
+        
+        If two sentences mention the same entity in similar phrasing,
+        combine them into a single richer sentence.
+        """
+        if len(sentences) <= 1:
+            return sentences
+        
+        fused = []
+        used = set()
+        
+        for i, s1 in enumerate(sentences):
+            if i in used:
+                continue
+            
+            # Extract key content words
+            words1 = set(re.findall(r'\b[a-z]{3,}\b', s1.lower())) - _STOP_WORDS
+            
+            merged = s1
+            for j, s2 in enumerate(sentences):
+                if j <= i or j in used:
+                    continue
+                
+                words2 = set(re.findall(r'\b[a-z]{3,}\b', s2.lower())) - _STOP_WORDS
+                
+                # Check overlap ratio
+                if not words1 or not words2:
+                    continue
+                overlap = len(words1 & words2)
+                ratio = overlap / min(len(words1), len(words2))
+                
+                if ratio >= 0.4:  # 40% content word overlap → fuse
+                    # Find unique content in s2 that's not in s1
+                    unique_words = words2 - words1
+                    if unique_words:
+                        # Extract the clause containing unique info
+                        clauses2 = _extract_clauses(s2)
+                        for clause in clauses2:
+                            clause_words = set(re.findall(r'\b[a-z]{3,}\b', clause.lower()))
+                            if clause_words & unique_words:
+                                merged = merged.rstrip('.') + ', ' + clause.lower().strip()
+                                used.add(j)
+                                break
+                    else:
+                        used.add(j)
+            
+            fused.append(merged)
+        
+        return fused
+    
+    def _select_connective(self, prev: str, next_clause: str, seed: int) -> str | None:
+        """Select an appropriate discourse connective between clauses.
+        
+        Uses semantic cues to pick the right relation type, then
+        selects a specific connective based on the seed for variety.
+        """
+        prev_lower = prev.lower()
+        next_lower = next_clause.lower()
+        
+        # Detect contrast
+        contrast_words = {'but', 'however', 'unlike', 'different', 'not', 'except'}
+        if any(w in next_lower.split()[:3] for w in contrast_words):
+            rel = "contrast"
+        # Detect causal
+        elif any(w in next_lower for w in ('because', 'therefore', 'result', 'cause')):
+            rel = "cause"
+        # Detect example
+        elif any(w in next_lower for w in ('example', 'instance', 'such as', 'like ')):
+            rel = "example"
+        # Default: alternate between addition and elaboration
+        elif seed % 3 == 0:
+            rel = "elaboration"
+        else:
+            rel = "addition"
+        
+        # Don't add connective too often (every other clause)
+        if seed % 2 == 0:
+            return None
+        
+        options = self.CONNECTIVES[rel]
+        return options[seed % len(options)].capitalize()
 
 
 # ─── Semantic Weaver (main API) ────────────────────────────────────

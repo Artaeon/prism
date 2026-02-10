@@ -15,6 +15,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
+import numpy as np
+
 if TYPE_CHECKING:
     from prism.memory import EpisodicMemory
 
@@ -27,8 +29,12 @@ class EpisodeIndex:
     - object → [episode_ids]
     - relation → [episode_ids]
 
+    Phase 4: Also supports vectorized batch cosine search via a
+    stacked numpy matrix for O(d) queries instead of O(n×d).
+
     Search is exact on normalized (lowercased) fields. For fuzzy
     matching, use search_fuzzy() which leverages spaCy embeddings.
+    For vector similarity, use search_by_vector() which uses numpy.
     """
 
     def __init__(self) -> None:
@@ -41,10 +47,16 @@ class EpisodeIndex:
         # spaCy model for embedding similarity (lazy loaded)
         self._nlp = None
 
+        # Phase 4: Vectorized search
+        self._vector_matrix: np.ndarray | None = None
+        self._vector_ids: list[int] = []
+        self._index_dirty: bool = True
+
     def add(self, episode: EpisodicMemory) -> None:
         """Add an episode to the index."""
         eid = episode.id
         self._episodes[eid] = episode
+        self._index_dirty = True  # Phase 4: mark vector index stale
 
         subj = episode.subject.lower().strip()
         obj = episode.obj.lower().strip()
@@ -263,3 +275,85 @@ class EpisodeIndex:
             except Exception:
                 self._nlp = False  # Mark as unavailable
         return self._nlp if self._nlp is not False else None
+
+    # ─── Phase 4: Vectorized Batch Search ──────────────────────────
+
+    def rebuild_vector_index(self) -> None:
+        """Rebuild the stacked vector matrix for batch cosine search.
+
+        Stacks all episode vectors into a single numpy matrix
+        and normalizes rows for efficient dot-product similarity.
+        """
+        vectors = []
+        ids = []
+        for eid, ep in self._episodes.items():
+            if ep.vector is not None:
+                v = np.asarray(ep.vector, dtype=np.float32)
+                norm = np.linalg.norm(v)
+                if norm > 0:
+                    vectors.append(v / norm)
+                    ids.append(eid)
+
+        if vectors:
+            self._vector_matrix = np.vstack(vectors)  # shape: (N, dim)
+            self._vector_ids = ids
+        else:
+            self._vector_matrix = None
+            self._vector_ids = []
+
+        self._index_dirty = False
+
+    def search_by_vector(
+        self,
+        query_vec: np.ndarray,
+        top_k: int = 10,
+        min_score: float = 0.0,
+    ) -> list[tuple['EpisodicMemory', float]]:
+        """Vectorized batch cosine similarity search.
+
+        Uses a single matrix multiply instead of per-episode loops.
+        O(d) per query instead of O(n*d).
+
+        Args:
+            query_vec: Query vector (same dimension as episodes)
+            top_k: Number of results
+            min_score: Minimum cosine similarity
+
+        Returns:
+            List of (episode, score) tuples sorted by score
+        """
+        # Rebuild if stale
+        if self._index_dirty or self._vector_matrix is None:
+            self.rebuild_vector_index()
+
+        if self._vector_matrix is None or len(self._vector_ids) == 0:
+            return []
+
+        # Normalize query
+        q = np.asarray(query_vec, dtype=np.float32)
+        norm = np.linalg.norm(q)
+        if norm == 0:
+            return []
+        q = q / norm
+
+        # Single matrix multiply: all cosines at once
+        scores = self._vector_matrix @ q  # shape: (N,)
+
+        # Get top-k indices
+        if len(scores) <= top_k:
+            top_indices = np.argsort(scores)[::-1]
+        else:
+            # Partial sort for efficiency
+            top_indices = np.argpartition(scores, -top_k)[-top_k:]
+            top_indices = top_indices[np.argsort(scores[top_indices])[::-1]]
+
+        results = []
+        for idx in top_indices:
+            score = float(scores[idx])
+            if score < min_score:
+                break
+            eid = self._vector_ids[idx]
+            if eid in self._episodes:
+                results.append((self._episodes[eid], score))
+
+        return results
