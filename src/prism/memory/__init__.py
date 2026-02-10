@@ -1,4 +1,9 @@
-"""Enhanced Vector Memory with semantic adjustment during learning."""
+"""Enhanced Vector Memory with semantic adjustment and knowledge graph.
+
+Dual storage:
+- Vector space: holographic distributed representations for VSA queries
+- Knowledge graph: weighted edges with provenance for structured reasoning
+"""
 
 from __future__ import annotations
 
@@ -11,6 +16,7 @@ from prism.core import VSAConfig, DEFAULT_CONFIG
 from prism.core.vector_ops import VectorOps, HVector
 from prism.core.lexicon import Lexicon
 from prism.memory.episode_index import EpisodeIndex
+from prism.memory.knowledge_graph import KnowledgeGraph
 
 
 @dataclass
@@ -60,7 +66,7 @@ class VectorMemory:
         lexicon: Lexicon,
         config: VSAConfig | None = None,
     ) -> None:
-        """Initialize memory."""
+        """Initialize memory with dual storage (vector + graph)."""
         self.config = config or DEFAULT_CONFIG
         self.ops = VectorOps(self.config)
         self.lexicon = lexicon
@@ -69,6 +75,9 @@ class VectorMemory:
         self._episodes: list[EpisodicMemory] = []
         self._next_id = 1
         self._index = EpisodeIndex()
+        
+        # Phase 2: Knowledge graph for structured reasoning
+        self.graph = KnowledgeGraph()
     
     def store(
         self,
@@ -118,6 +127,13 @@ class VectorMemory:
         self._episodes.append(episode)
         self._index.add(episode)
         self._next_id += 1
+        
+        # Phase 2: Add to knowledge graph
+        self.graph.add_edge(
+            source=subject, relation=relation, target=obj,
+            weight=importance, confidence=1.0,
+            source_type="user",
+        )
         
         return episode
     
@@ -402,9 +418,15 @@ class VectorMemory:
     def get_entity_relations(self, entity: str) -> dict[str, list[str]]:
         """Get all relations for an entity, grouped by relation type.
         
+        Uses graph for structured results, falls back to index.
+        
         Returns:
             {"IS-A": ["mammal", "animal"], "CAN": ["purr", "climb"]}
         """
+        # Try graph first (richer structure)
+        graph_rels = self.graph.get_relations(entity)
+        if graph_rels:
+            return graph_rels
         return self._index.get_relations_for(entity)
     
     def clear(self) -> None:
